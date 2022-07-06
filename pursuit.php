@@ -130,11 +130,11 @@ function p365_modify_order_meta( $order_id ) {
         $product_id = $item->get_product_id();
         
         // If a membership product is in the order, increase the count
-        if (( $product_id == '3774') || ( $product_id == '3775' ) ) {
+        if (( $product_id == '3774') || ( $product_id == '3775' ) || ( $product_id == '3849' ) || ( $product_id == '3848' ) ) {
             $memberships++;
         }
         
-        if ( $product_id == '3775' ) {
+        if (( $product_id == '3775' ) || ( $product_id == '3848' )) {
             $coauth_memberships++;
         }
     }
@@ -152,7 +152,11 @@ function p365_modify_order_meta( $order_id ) {
         $coath_status = 'is_coauthor';
 
         update_user_meta( $user_id, 'p365_member_coauth', $coath_status );
-    }
 
+        // Redirect coauthors to digital feature form
+        $url = '/my-account/digital-feature/';
+        wp_safe_redirect( $url );
+        exit;
+    }
 };
 add_action( 'woocommerce_thankyou', 'p365_modify_order_meta' );
