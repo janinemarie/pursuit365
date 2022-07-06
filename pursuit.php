@@ -10,10 +10,13 @@ Author: Janine Paris
 Version: 1.0.0
 Author URI: https://criticalhit.dev
 */
-
+/**
+ * CHECK FOR EXPIRATION DATE
+ */
 add_action( 'plugins_loaded', 'get_user_info' );
 function get_user_info(){
     global $current_user_meta_expiry;
+    global $current_user_coauth_status;
     
     $current_user = wp_get_current_user();
 
@@ -22,6 +25,7 @@ function get_user_info(){
 
     $current_date = strtotime( date('m-d-Y') );
     $current_user_meta_expiry = get_user_meta( $current_user->ID, 'p365_member_expiry', true );
+    $current_user_coauth_status = get_user_meta( $current_user->ID, 'p365_member_coauth', true );
     $current_user_expiry_date = strtotime( $current_user_meta_expiry );
     $is_expired = false;
 
@@ -76,7 +80,14 @@ function get_user_info(){
 
 // Add content to an endpoint
         function p365_digital_feature_content() {
-            echo do_shortcode('[elementor-template id="3787"]');
+            global $current_user_coauth_status;
+            
+            if ( $current_user_coauth_status == 'is_coauthor' ) {
+                echo do_shortcode('[elementor-template id="3787"]');
+            } else {
+                echo 'Contact <a href="mailto:editor@pursuit365.com">editor@pursuit365.com</a> to upgrade your membership to Co-Author and set your Digital Feature Date.';
+            }
+            
         }
         add_action( 'woocommerce_account_digital-feature_endpoint', 'p365_digital_feature_content' );
 // add_action must follow 'woocommerce_account_{your-endpoint-slug}_endpoint' format
@@ -91,40 +102,12 @@ function p365_circle_community_link(){
     $html .= '<p>';
     $html .= 'Visit the pursuit:365 community for even more exclusive content and access &rarr; ';
     $html .= '<a href="https://membership.pursuit365.com/" target="_blank" class="button">Dive In</a>';
+    $html .= '<br/>';
+    $html .= 'Not a member yet? <a href="/memberships/" style="font-weight:bolder;">Join today!</a>';
     $html .= '</p>';
     return $html;
 }
 add_shortcode( 'community-link', 'p365_circle_community_link' );
-
-function p365_directory_profile_link() {
-    $html = '';
-    $html .= '<p>';
-    $html .= 'View or edit your pursuit:365.com directory profile &rarr; ';
-    $html .= '<a href="/account/?action=dir-profile" class="button">My Directory Profile</a>';
-    $html .= '</p>';
-    return $html;
-}
-add_shortcode( 'directory-profile-link', 'p365_directory_profile_link' );
-
-function p365_show_user_avatar() {
-    if( is_user_logged_in() ) {
-        global $current_user;
-        get_currentuserinfo();
-        
-        $img_src = get_avatar_url( $current_user -> ID );
-        $name = $current_user -> first_name;
-        $html = '';
-        $html .= '<img src="' . $img_src . '" alt="' . $name . 's current profile image">';
-        return $html;
-    }
-    else {
-        // If not logged in, show default avatar
-        $html = '';
-        $html .= '<img src="/wp-content/plugins/pursuit/images/profile-icon.svg" alt="default image, pursuit:365 logo" title="No profile image available">';
-        return $html;
-    }
-}
-add_shortcode( 'current-profile-img', 'p365_show_user_avatar' );
 
 /**
  * ADD ORDER AND USER META TO WOO ORDERS
@@ -138,8 +121,9 @@ function p365_modify_order_meta( $order_id ) {
     $order_items = $order->get_items();
     $order_date = $order->order_date;
     
-    // Initialize a counter
-    $count = 0;
+    // Initialize counters
+    $memberships = 0;
+    $coauth_memberships = 0;
 
     // Check for the membership products in order items
     foreach( $order_items as $item_id => $item ){
@@ -147,18 +131,27 @@ function p365_modify_order_meta( $order_id ) {
         
         // If a membership product is in the order, increase the count
         if (( $product_id == '3774') || ( $product_id == '3775' ) ) {
-            $count++;
+            $memberships++;
         }
         
-        // If the count is greater than 0, then add custom meta
-        if ( $count > 0 ) {
-            // Set a future expiration date
-            $expiry_date = date('m-d-Y', strtotime('+1 year', strtotime($order_date)));
-            
-            // Add the expiration date to user meta
-            update_user_meta( $user_id, 'p365_member_expiry', $expiry_date );
-            //add_meta_data( $order_id, 'p365_member_expiry', $expiry_date );
+        if ( $product_id == '3775' ) {
+            $coauth_memberships++;
         }
+    }
+    
+    // If the count is greater than 0, then add custom meta
+    if ( $memberships > 0 ) {
+        // Set a future expiration date
+        $expiry_date = date('m-d-Y', strtotime('+1 year', strtotime($order_date)));
+
+        // Add the expiration date to user meta
+        update_user_meta( $user_id, 'p365_member_expiry', $expiry_date );
+    }
+
+    if ( $coauth_memberships > 0 ) {
+        $coath_status = 'is_coauthor';
+
+        update_user_meta( $user_id, 'p365_member_coauth', $coath_status );
     }
 
 };
