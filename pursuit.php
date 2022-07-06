@@ -113,7 +113,7 @@ add_shortcode( 'community-link', 'p365_circle_community_link' );
  * ADD ORDER AND USER META TO WOO ORDERS
  */
 
-function p365_modify_order_meta( $order_id ) {
+function p365_modify_user_meta( $order_id ) {
     
     // Get some info about the order
     $order = new WC_Order( $order_id );
@@ -159,4 +159,4 @@ function p365_modify_order_meta( $order_id ) {
         exit;
     }
 };
-add_action( 'woocommerce_thankyou', 'p365_modify_order_meta' );
+add_action( 'woocommerce_thankyou', 'p365_modify_user_meta' );
